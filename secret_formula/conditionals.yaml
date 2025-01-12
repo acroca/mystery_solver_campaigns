@@ -1,0 +1,109 @@
+409a0931-0d04-49b0-a63a-73103ff25b1b:
+  character: sarah_chen
+  required_clues: []
+  required_characters: []
+  player_message_condition: asks about security
+  revealed_information: |-
+    Sarah introduces John.
+    Sarah will confirm seeing John meeting with strangers in the parking lot, but didn't think much of it at the time since he's head of security.
+  unlocks_clues: []
+  unlocks_characters:
+  - john_thomsen
+
+11565382-694f-4ecf-b104-609ae4e9eda3:
+  character: john_thomsen
+  required_clues: []
+  required_characters: []
+  player_message_condition: the player asks about security material, to see it, or asks about the existence of it
+  revealed_information: |-
+    John provides the security logs and camera footage to the player.
+    John checked the security logs but didn't see anything suspicious.
+    John checked the security camera footage and only saw some vans, but he didn't find it suspicious.
+  unlocks_clues:
+  - security_logs
+  - security_camera_footage
+  unlocks_characters: []
+
+405f992a-7d3e-4031-a7bb-5d4dc0617cea:
+  character: john_thomsen
+  required_clues: []
+  required_characters: []
+  player_message_condition: asks about the night shift, like who was on duty or who was in the building during the night
+  revealed_information: |-
+    John introduces Mike and Elena.
+    Mike was found unconscious a few hours after the theft in the break room.
+  unlocks_clues: []
+  unlocks_characters:
+  - mike_rodriguez
+  - elena_martinez
+
+
+49b8512a-e69b-4e23-9880-0a59dfc0a9a5:
+  character: mike_rodriguez
+  required_clues:
+  - security_camera_footage
+  required_characters: []
+  player_message_condition: asks about the vans from the security camera footage
+  revealed_information: |-
+    Mike will identify the vans as belonging to the maintenance company, but doesn't have the usual license plates.
+  unlocks_clues:
+  - suspicious_maintenance_vans
+  unlocks_characters: []
+
+75b176d1-70ea-443c-a756-f5ee331cce3d:
+  character: mike_rodriguez
+  required_clues: []
+  required_characters: []
+  player_message_condition: asks about Mike's drink before passing out
+  revealed_information: |-
+    Mike tasted something odd in his drink that night. He thought it was just a new coffee brand.
+  unlocks_clues:
+  - break_room_coffee
+  unlocks_characters: []
+
+6b99e651-ad44-44f4-a17a-6e21560940fa:
+  character: mike_rodriguez
+  required_clues: []
+  required_characters: []
+  player_message_condition: asks about the maintenance schedule
+  revealed_information: Mike will point out that no maintenance was scheduled for that night
+  unlocks_clues:
+  - maintenance_schedule
+  unlocks_characters: []
+
+e5af57b1-36ca-4113-b276-5617fb32b037:
+  character: elena_martinez
+  required_clues:
+  - suspicious_maintenance_vans
+  required_characters: []
+  player_message_condition: asks about the maintenance vans
+  revealed_information: |-
+    Elena Martinez will describe seeing unfamiliar workers in maintenance uniforms and reported it to John Thomsen.
+  unlocks_clues:
+  - maintenance_workers_reported
+  unlocks_characters: []
+
+d630b700-43d1-4549-a654-fba6dc634829:
+  character: elena_martinez
+  required_clues:
+  - break_room_coffee
+  required_characters: []
+  player_message_condition: asks about the break room coffee
+  revealed_information: Elena Martinez will remember seeing someone unfamiliar near the break room earlier that evening.
+  unlocks_clues: []
+  unlocks_characters: []
+
+20b743c1-b721-48ca-8944-a70e4253eb48:
+  character: john_thomsen
+  required_clues:
+  - maintenance_workers_reported
+  required_characters: []
+  player_message_condition: asks about either the suspicious maintenance workers, or about what Elena reported to him
+  revealed_information: |-
+    John will admit he lied to the player.
+    He will admit he provided all the security information to the thieves a few days ago, so he is the main responsible person for the robbery.
+    He was motivated by money.
+    He will accept going to jail.
+  unlocks_clues:
+  - proof_of_guilt
+  unlocks_characters: []
