@@ -1,4 +1,4 @@
-409a0931-0d04-49b0-a63a-73103ff25b1b:
+a:
   character: sarah_chen
   required_clues: []
   required_characters: []
@@ -10,11 +10,11 @@
   unlocks_characters:
   - john_thomsen
 
-11565382-694f-4ecf-b104-609ae4e9eda3:
+b:
   character: john_thomsen
   required_clues: []
   required_characters: []
-  player_message_condition: the player asks about security material, to see it, or asks about the existence of it
+  player_message_condition: asks about security material like security logs or camera footage
   revealed_information: |-
     John provides the security logs and camera footage to the player.
     John checked the security logs but didn't see anything suspicious.
@@ -24,11 +24,11 @@
   - security_camera_footage
   unlocks_characters: []
 
-405f992a-7d3e-4031-a7bb-5d4dc0617cea:
+c:
   character: john_thomsen
   required_clues: []
   required_characters: []
-  player_message_condition: asks about the night shift, like who was on duty or who was in the building during the night
+  player_message_condition: The player asks or shows interest in who was working the night shift
   revealed_information: |-
     John introduces Mike and Elena.
     Mike was found unconscious a few hours after the theft in the break room.
@@ -37,8 +37,7 @@
   - mike_rodriguez
   - elena_martinez
 
-
-49b8512a-e69b-4e23-9880-0a59dfc0a9a5:
+d:
   character: mike_rodriguez
   required_clues:
   - security_camera_footage
@@ -50,7 +49,7 @@
   - suspicious_maintenance_vans
   unlocks_characters: []
 
-75b176d1-70ea-443c-a756-f5ee331cce3d:
+e:
   character: mike_rodriguez
   required_clues: []
   required_characters: []
@@ -61,7 +60,7 @@
   - break_room_coffee
   unlocks_characters: []
 
-6b99e651-ad44-44f4-a17a-6e21560940fa:
+f:
   character: mike_rodriguez
   required_clues: []
   required_characters: []
@@ -71,7 +70,7 @@
   - maintenance_schedule
   unlocks_characters: []
 
-e5af57b1-36ca-4113-b276-5617fb32b037:
+g:
   character: elena_martinez
   required_clues:
   - suspicious_maintenance_vans
@@ -83,7 +82,7 @@ e5af57b1-36ca-4113-b276-5617fb32b037:
   - maintenance_workers_reported
   unlocks_characters: []
 
-d630b700-43d1-4549-a654-fba6dc634829:
+h:
   character: elena_martinez
   required_clues:
   - break_room_coffee
@@ -93,7 +92,7 @@ d630b700-43d1-4549-a654-fba6dc634829:
   unlocks_clues: []
   unlocks_characters: []
 
-20b743c1-b721-48ca-8944-a70e4253eb48:
+i:
   character: john_thomsen
   required_clues:
   - maintenance_workers_reported
