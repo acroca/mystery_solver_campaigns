@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campaign Editor</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Vue 3 via CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+
+<body class="bg-gray-100">
+  <!-- Template for the translatable input component -->
+  <template id="translatable-field">
+    <div class="space-y-3">
+      <div class="space-y-1">
+        <div class="flex justify-between items-center">
+          <label class="block text-sm font-medium text-gray-700">
+            {{ label }} ({{ selectedLanguageName }})
+          </label>
+        </div>
+        <template v-if="multiline">
+          <auto-textarea
+            v-model="translations[selectedLanguage]"
+            :placeholder="placeholder"
+            :multiline="true"
+          ></auto-textarea>
+        </template>
+        <template v-else>
+          <input
+            type="text"
+            v-model="translations[selectedLanguage]"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            :placeholder="placeholder"
+          >
+        </template>
+      </div>
+    </div>
+  </template>
+
+  <template id="selector-field">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">{{ label }}</label>
+      <div class="bg-gray-50 p-4 rounded-md space-y-2 max-h-48 overflow-y-auto">
+        <div v-if="!items?.length" class="text-gray-500 text-sm">
+          No {{ itemType }}s available.
+        </div>
+        <div v-for="item in items" :key="item.id" class="flex items-center">
+          <input
+            type="checkbox"
+            :id="componentId + '-' + item.id"
+            :value="item.id"
+            v-model="selectedItems"
+            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          >
+          <label :for="componentId + '-' + item.id" class="ml-2 text-sm text-gray-700">
+            {{ getItemLabel(item) }}
+          </label>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="modal-dialog">
+    <div v-if="show" class="fixed inset-0 z-10 overflow-y-auto">
+      <div class="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="$emit('close')"></div>
+
+        <!-- Modal panel -->
+        <div class="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-7xl sm:align-middle">
+          <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <!-- Header with Language Selector -->
+            <div class="mb-4">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium leading-6 text-gray-900">{{ title }}</h3>
+                <button @click="$emit('close')" class="text-gray-400 hover:text-gray-500">
+                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <!-- Language Selector -->
+              <div class="flex items-center space-x-2">
+                <label class="text-sm font-medium text-gray-700">Editing Language:</label>
+                <div class="flex space-x-1">
+                  <button
+                    v-for="lang in languages"
+                    :key="lang.code"
+                    @click="$emit('update:selectedLanguage', lang.code)"
+                    :class="[
+                      'px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2',
+                      selectedLanguage === lang.code
+                        ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+                        : 'bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500 border border-gray-300'
+                    ]"
+                  >
+                    {{ lang.name }}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <!-- Content -->
+            <div>
+              <slot></slot>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="dependency-item">
+    <div class="dependency-item">
+      <div class="flex items-center justify-between p-3 bg-white rounded border border-gray-200">
+        <span class="text-sm text-gray-700">{{ label }}</span>
+        <button
+          v-if="hasDependencies"
+          @click="isExpanded = !isExpanded"
+          class="ml-2 text-gray-400 hover:text-gray-600"
+        >
+          <svg
+            class="h-4 w-4 transform transition-transform duration-200"
+            :class="{ 'rotate-90': isExpanded }"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
+      <div v-if="isExpanded" class="ml-4 mt-2 space-y-2">
+        <template v-if="dependencies.length">
+          <div v-for="dep in dependencies" :key="dep._key" class="border-l-2 border-gray-200 pl-4">
+            <div class="text-xs font-medium text-gray-500 mb-1">
+              Unlocked by {{ getCharacterName(dep.characterId) }} with condition:
+            </div>
+            <div class="bg-gray-50 p-2 rounded mb-2 text-sm">{{ dep.condition }}</div>
+
+            <!-- Required Items -->
+            <div v-if="dep.requiredClues.length || dep.requiredCharacters.length" class="space-y-2 mb-2">
+              <div v-if="dep.requiredClues.length">
+                <div class="text-xs font-medium text-gray-500 mb-1">Requires clues:</div>
+                <dependency-item
+                  v-for="clueId in dep.requiredClues"
+                  :key="clueId"
+                  :item-id="clueId"
+                  :item-type="'clue'"
+                  :all-conditionals="allConditionals"
+                  :get-item-label="getItemLabel"
+                ></dependency-item>
+              </div>
+              <div v-if="dep.requiredCharacters.length">
+                <div class="text-xs font-medium text-gray-500 mb-1">Requires characters:</div>
+                <dependency-item
+                  v-for="charId in dep.requiredCharacters"
+                  :key="charId"
+                  :item-id="charId"
+                  :item-type="'character'"
+                  :all-conditionals="allConditionals"
+                  :get-item-label="getItemLabel"
+                ></dependency-item>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </template>
+
+  <template id="auto-textarea">
+    <div class="relative">
+      <textarea
+        ref="textarea"
+        :value="modelValue"
+        @input="onInput"
+        :placeholder="placeholder"
+        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm resize-none overflow-hidden bg-gray-50"
+        :class="{ 'min-h-[100px]': multiline }"
+        :style="{ height: height + 'px' }"
+      ></textarea>
+    </div>
+  </template>
+
+  <div id="app" class="min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center">
+          <h1 class="text-2xl font-bold text-gray-900">Campaign Editor</h1>
+          <div class="flex items-center space-x-4">
+            <!-- Language Selector -->
+            <div class="flex items-center space-x-2">
+              <label class="text-sm font-medium text-gray-700">Editing Language:</label>
+              <div class="flex space-x-1">
+                <button
+                  v-for="lang in languages"
+                  :key="lang.code"
+                  @click="selectedLanguage = lang.code"
+                  :class="[
+                    'px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2',
+                    selectedLanguage === lang.code
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500 border border-gray-300'
+                  ]"
+                >
+                  {{ lang.name }}
+                </button>
+              </div>
+            </div>
+            <!-- Import/Export buttons -->
+            <div class="space-x-4">
+              <input type="file" ref="fileInput" @change="handleFileImport" class="hidden" accept=".json">
+              <button @click="triggerFileInput" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                Import Campaign
+              </button>
+              <button @click="exportCampaign" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                Export Campaign
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+      <!-- Welcome message when no campaign is loaded -->
+      <div v-if="!campaignData" class="bg-white shadow rounded-lg p-6">
+        <p class="text-gray-500">{{ message }}</p>
+      </div>
+
+      <!-- Campaign Editor Interface -->
+      <div v-else class="bg-white shadow rounded-lg">
+        <!-- Tabs -->
+        <div class="border-b border-gray-200">
+          <nav class="flex -mb-px">
+            <button v-for="tab in tabs" :key="tab" @click="currentTab = tab" :class="[
+                                'px-6 py-3 text-sm font-medium',
+                                currentTab === tab
+                                    ? 'border-b-2 border-blue-500 text-blue-600'
+                                    : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            ]">
+              {{ tab }}
+            </button>
+          </nav>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="p-6">
+          <!-- General Tab -->
+          <div v-if="currentTab === 'General'" class="space-y-6">
+            <div class="grid grid-cols-1 gap-6">
+              <!-- Title (translatable) -->
+              <translatable-field label="Title" v-model="campaignData.title" placeholder="Enter campaign title"
+                :multiline="false"></translatable-field>
+
+              <!-- Intro Message (translatable) -->
+              <translatable-field label="Intro Message" v-model="campaignData.introMessage"
+                placeholder="Message shown to the user when starting the campaign" :multiline="true"
+                :rows="3"></translatable-field>
+
+              <!-- AI Prompt (not translatable) -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700">AI Prompt</label>
+                <auto-textarea v-model="campaignData.prompt"
+                  placeholder="Prompt used to generate the intro message"></auto-textarea>
+              </div>
+
+              <!-- Initial Characters -->
+              <selector-field
+                label="Initial Characters"
+                v-model="campaignData.initialCharacters"
+                :items="campaignData.characters"
+                item-type="character"
+              ></selector-field>
+            </div>
+          </div>
+
+          <!-- Characters Tab -->
+          <div v-if="currentTab === 'Characters'" class="space-y-6">
+            <!-- Add Character Button -->
+            <div class="flex justify-end">
+              <button
+                @click="openCharacterForm()"
+                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+              >
+                Add Character
+              </button>
+            </div>
+
+            <!-- Characters Table -->
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Portrait</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr v-if="!campaignData.characters?.length">
+                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                      No characters yet. Click "Add Character" to create one.
+                    </td>
+                  </tr>
+                  <tr v-for="character in campaignData.characters" :key="character._key">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <div class="h-24 w-24">
+                        <img
+                          v-if="character.portrait"
+                          :src="character.portrait"
+                          class="h-24 w-24 rounded-lg object-cover border border-gray-200"
+                          :alt="character.name"
+                        >
+                        <div
+                          v-else
+                          class="h-24 w-24 rounded-lg bg-gray-100 flex items-center justify-center border border-gray-200"
+                        >
+                          <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ character.id }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900">{{ character.name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button @click="openCharacterForm(character)" class="text-blue-600 hover:text-blue-900 mr-4">Edit</button>
+                      <button @click="deleteCharacter(character)" class="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Character Edit Modal -->
+            <modal-dialog
+              v-if="showCharacterModal"
+              :show="showCharacterModal"
+              :title="editingCharacter._key ? 'Edit Character' : 'Add Character'"
+              :selected-language="selectedLanguage"
+              :languages="languages"
+              @close="closeCharacterForm"
+              @update:selected-language="selectedLanguage = $event"
+            >
+              <div class="grid grid-cols-1 gap-6">
+                <!-- ID -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">ID</label>
+                  <input
+                    type="text"
+                    v-model="editingCharacter.id"
+                    @input="validateAndUpdateId(editingCharacter)"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="character_id"
+                  >
+                </div>
+
+                <!-- Name -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Name</label>
+                  <input
+                    type="text"
+                    v-model="editingCharacter.name"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="Character Name"
+                  >
+                </div>
+
+                <!-- Intro (translatable) -->
+                <div>
+                  <translatable-field
+                    label="Intro"
+                    v-model="editingCharacter.intro"
+                    placeholder="Character's introduction"
+                    :multiline="true"
+                    :rows="2"
+                  ></translatable-field>
+                </div>
+
+                <!-- Description (translatable) -->
+                <div>
+                  <translatable-field
+                    label="Description"
+                    v-model="editingCharacter.description"
+                    placeholder="Character's description"
+                    :multiline="true"
+                    :rows="3"
+                  ></translatable-field>
+                </div>
+
+                <!-- Prompt -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Prompt</label>
+                  <auto-textarea
+                    v-model="editingCharacter.prompt"
+                    placeholder="AI prompt for character responses"
+                  ></auto-textarea>
+                </div>
+
+                <!-- Portrait Prompt -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Portrait Prompt</label>
+                  <auto-textarea
+                    v-model="editingCharacter.portraitPrompt"
+                    placeholder="AI prompt for character portrait generation"
+                  ></auto-textarea>
+                </div>
+
+                <!-- Portrait Image -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">Portrait Image</label>
+                  <div class="mt-1 flex items-center space-x-4">
+                    <div v-if="editingCharacter.portrait" class="relative">
+                      <img
+                        :src="editingCharacter.portrait"
+                        class="h-32 w-32 object-cover rounded-lg border border-gray-300"
+                        alt="Character portrait"
+                      >
+                      <button
+                        @click="removePortrait"
+                        class="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-1 hover:bg-red-200"
+                      >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div v-else class="h-32 w-32 bg-gray-100 rounded-lg border border-dashed border-gray-300 flex items-center justify-center">
+                      <span class="text-gray-500 text-sm">No image</span>
+                    </div>
+                    <div>
+                      <input
+                        type="file"
+                        ref="portraitInput"
+                        @change="handlePortraitUpload"
+                        accept="image/*"
+                        class="hidden"
+                      >
+                      <button
+                        @click="$refs.portraitInput.click()"
+                        class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        {{ editingCharacter.portrait ? 'Change Image' : 'Upload Image' }}
+                      </button>
+                    </div>
+                  </div>
+                  <p class="mt-1 text-sm text-gray-500">Recommended size: 256x256 pixels</p>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end space-x-3 mt-4">
+                  <button
+                    @click="closeCharacterForm"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    @click="saveCharacter"
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </modal-dialog>
+          </div>
+
+          <!-- Clues Tab -->
+          <div v-if="currentTab === 'Clues'" class="space-y-6">
+            <!-- Add Clue Button -->
+            <div class="flex justify-end">
+              <button
+                @click="openClueForm()"
+                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+              >
+                Add Clue
+              </button>
+            </div>
+
+            <!-- Clues Table -->
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Text (English)</th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr v-if="!campaignData.clues?.length">
+                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                      No clues yet. Click "Add Clue" to create one.
+                    </td>
+                  </tr>
+                  <tr v-for="clue in campaignData.clues" :key="clue._key">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ clue.id }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ clue.text?.en || '-' }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button @click="openClueForm(clue)" class="text-blue-600 hover:text-blue-900 mr-4">Edit</button>
+                      <button @click="deleteClue(clue)" class="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Clue Edit Modal -->
+            <modal-dialog
+              v-if="showClueModal"
+              :show="showClueModal"
+              :title="editingClue._key ? 'Edit Clue' : 'Add Clue'"
+              :selected-language="selectedLanguage"
+              :languages="languages"
+              @close="closeClueForm"
+              @update:selected-language="selectedLanguage = $event"
+            >
+              <div class="grid grid-cols-1 gap-6">
+                <!-- ID -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700">ID</label>
+                  <input
+                    type="text"
+                    v-model="editingClue.id"
+                    @input="validateAndUpdateClueId(editingClue)"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="clue_id"
+                  >
+                </div>
+
+                <!-- Text (translatable) -->
+                <div>
+                  <translatable-field
+                    label="Text"
+                    v-model="editingClue.text"
+                    placeholder="The clue text that will be shown to the player"
+                    :multiline="true"
+                    :rows="2"
+                  ></translatable-field>
+                </div>
+
+                <!-- Description (translatable) -->
+                <div>
+                  <translatable-field
+                    label="Description"
+                    v-model="editingClue.description"
+                    placeholder="Additional description or context for the clue"
+                    :multiline="true"
+                    :rows="3"
+                  ></translatable-field>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end space-x-3 mt-4">
+                  <button
+                    @click="closeClueForm"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    @click="saveClue"
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </modal-dialog>
+          </div>
+
+          <!-- Conditionals Tab -->
+          <div v-if="currentTab === 'Conditionals'" class="space-y-6">
+            <!-- Add Conditional Button -->
+            <div class="flex justify-end">
+              <button
+                @click="openConditionalForm()"
+                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+              >
+                Add Conditional
+              </button>
+            </div>
+
+            <!-- Conditionals Table -->
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Character</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Condition</th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr v-if="!campaignData.conditionals?.length">
+                    <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">
+                      No conditionals yet. Click "Add Conditional" to create one.
+                    </td>
+                  </tr>
+                  <tr v-for="conditional in campaignData.conditionals" :key="conditional._key">
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                      {{ getCharacterName(conditional.characterId) }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ conditional.condition }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button @click="openConditionalForm(conditional)" class="text-blue-600 hover:text-blue-900 mr-4">Edit</button>
+                      <button @click="deleteConditional(conditional)" class="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Conditional Edit Modal -->
+            <modal-dialog
+              v-if="showConditionalModal"
+              :show="showConditionalModal"
+              :title="editingConditional._key ? 'Edit Conditional' : 'Add Conditional'"
+              :selected-language="selectedLanguage"
+              :languages="languages"
+              @close="closeConditionalForm"
+              @update:selected-language="selectedLanguage = $event"
+            >
+              <div class="grid grid-cols-2 gap-6">
+                <!-- Left Sidebar - Selected Items -->
+                <div class="bg-gray-50 p-6 rounded-lg space-y-6">
+                  <div class="space-y-6">
+                    <!-- Required Clues List -->
+                    <div>
+                      <h4 class="font-medium text-sm text-gray-900 mb-2">Required Clues:</h4>
+                      <div class="space-y-2">
+                        <div v-if="!editingConditional.requiredClues.length" class="text-sm text-gray-500 italic">
+                          No clues selected
+                        </div>
+                        <dependency-item
+                          v-for="clueId in editingConditional.requiredClues"
+                          :key="clueId"
+                          :item-id="clueId"
+                          :item-type="'clue'"
+                          :all-conditionals="campaignData.conditionals"
+                          :get-item-label="getClueText"
+                        ></dependency-item>
+                      </div>
+                    </div>
+
+                    <!-- Required Characters List -->
+                    <div>
+                      <h4 class="font-medium text-sm text-gray-900 mb-2">Required Characters:</h4>
+                      <div class="space-y-2">
+                        <div v-if="!editingConditional.requiredCharacters.length" class="text-sm text-gray-500 italic">
+                          No characters selected
+                        </div>
+                        <dependency-item
+                          v-for="charId in editingConditional.requiredCharacters"
+                          :key="charId"
+                          :item-id="charId"
+                          :item-type="'character'"
+                          :all-conditionals="campaignData.conditionals"
+                          :get-item-label="getCharacterName"
+                        ></dependency-item>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right Side - Form -->
+                <div>
+                  <div class="grid grid-cols-1 gap-6">
+                    <!-- Rest of the existing form fields -->
+                    <!-- Character Reference -->
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Character</label>
+                      <select
+                        v-model="editingConditional.characterId"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      >
+                        <option value="">Select a character</option>
+                        <option
+                          v-for="char in campaignData.characters"
+                          :key="char.id"
+                          :value="char.id"
+                        >
+                          {{ char.name || char.id }}
+                        </option>
+                      </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                      <!-- Required Clues -->
+                      <selector-field
+                        label="Required Clues"
+                        v-model="editingConditional.requiredClues"
+                        :items="campaignData.clues"
+                        item-type="clue"
+                      ></selector-field>
+
+                      <!-- Required Characters -->
+                      <selector-field
+                        label="Required Characters"
+                        v-model="editingConditional.requiredCharacters"
+                        :items="campaignData.characters"
+                        item-type="character"
+                      ></selector-field>
+                    </div>
+
+                    <!-- Condition -->
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700">Condition</label>
+                      <input
+                        type="text"
+                        v-model="editingConditional.condition"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Enter condition"
+                      >
+                    </div>
+
+                    <!-- Revealed Information -->
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700">Revealed Information</label>
+                      <auto-textarea
+                        v-model="editingConditional.revealedInformation"
+                        placeholder="Information to be revealed when condition is met"
+                      ></auto-textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                      <!-- Unlocked Clues -->
+                      <selector-field
+                        label="Unlocked Clues"
+                        v-model="editingConditional.unlockedClues"
+                        :items="campaignData.clues"
+                        item-type="clue"
+                      ></selector-field>
+
+                      <!-- Unlocked Characters -->
+                      <selector-field
+                        label="Unlocked Characters"
+                        v-model="editingConditional.unlockedCharacters"
+                        :items="campaignData.characters"
+                        item-type="character"
+                      ></selector-field>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="flex justify-end space-x-3 mt-4">
+                      <button
+                        @click="closeConditionalForm"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        @click="saveConditional"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </modal-dialog>
+          </div>
+
+          <!-- JSON Tab -->
+          <div v-if="currentTab === 'JSON'" class="space-y-4">
+            <div class="flex justify-end">
+              <button @click="copyJsonToClipboard"
+                class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                Copy to Clipboard
+              </button>
+            </div>
+            <textarea :value="prettyJson" readonly
+              class="w-full h-[600px] font-mono text-sm p-4 bg-gray-50 rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"></textarea>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Vue Application Code -->
+  <script src="scripts.js"></script>
+</body>
+</html>
