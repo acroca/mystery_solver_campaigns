@@ -17,9 +17,21 @@
     <div class="space-y-3">
       <div class="space-y-1">
         <div class="flex justify-between items-center">
-          <label class="block text-sm font-medium text-gray-700">
-            {{ label }} ({{ selectedLanguageName }})
-          </label>
+          <div class="flex items-center gap-2">
+            <label class="block text-sm font-medium text-gray-700">
+              {{ label }} ({{ selectedLanguageName }})
+            </label>
+            <button
+              v-if="hasAiPrompt"
+              @click="copyAiPrompt"
+              class="text-gray-400 hover:text-blue-500 transition-colors"
+              :title="`Click to copy an AI Prompt to generate this ${label.toLowerCase()}`"
+            >
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c5.51 0 10-4.48 10-10S17.51 2 12 2zm-1 14H9v-2h2v2zm4-3h-3v-2h2a2 2 0 0 0 0-4h-2a2.0002 2.0002 0 0 0-2 2h-2c0-2.21 1.79-4 4-4h2a4 4 0 0 1 0 8z"/>
+              </svg>
+            </button>
+          </div>
         </div>
         <template v-if="multiline">
           <auto-textarea
@@ -257,17 +269,21 @@
               <translatable-field label="Title" v-model="campaignData.title" placeholder="Enter campaign title"
                 :multiline="false"></translatable-field>
 
-              <!-- Intro Message (translatable) -->
-              <translatable-field label="Intro Message" v-model="campaignData.introMessage"
-                placeholder="Message shown to the user when starting the campaign" :multiline="true"
-                :rows="3"></translatable-field>
-
               <!-- AI Prompt (not translatable) -->
               <div>
                 <label class="block text-sm font-medium text-gray-700">AI Prompt</label>
                 <auto-textarea v-model="campaignData.prompt"
                   placeholder="Prompt used to generate the intro message"></auto-textarea>
               </div>
+
+              <!-- Intro Message (translatable) -->
+              <translatable-field label="Intro Message" v-model="campaignData.introMessage"
+                placeholder="Message shown to the user when starting the campaign" :multiline="true"
+                :rows="3"
+                :has-ai-prompt="true"
+                ai-prompt-instructions="Write a brief, impactful introduction that captures the essence of the campaign."
+                :ai-prompt-words-limit="150"
+                ></translatable-field>
 
               <!-- Initial Characters -->
               <selector-field
@@ -391,6 +407,13 @@
                     placeholder="Character's description"
                     :multiline="true"
                     :rows="3"
+                    :has-ai-prompt="true"
+                    :ai-prompt-context="{
+                      characterName: editingCharacter.name,
+                      characterPrompt: editingCharacter.prompt
+                    }"
+                    ai-prompt-instructions="Write a detailed and engaging character description that brings the character to life."
+                    :ai-prompt-words-limit="70"
                   ></translatable-field>
                 </div>
 
