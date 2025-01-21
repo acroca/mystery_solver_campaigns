@@ -317,6 +317,8 @@ const app = createApp({
       showConditionalModal: false,
       editingConditional: null,
       editingConditionalIndex: -1,
+      importUrl: 'https://raw.githubusercontent.com/acroca/mystery_solver_campaigns/refs/heads/main/secret_formula.json',
+      isImporting: false
     }
   },
   computed: {
@@ -739,6 +741,59 @@ const app = createApp({
           resolve(canvas.toDataURL('image/jpeg', 0.85)) // Use JPEG with 85% quality for better compression
         }
       })
+    },
+    async importFromUrl() {
+      if (!this.importUrl || this.isImporting) return
+
+      this.isImporting = true
+      this.message = 'Importing campaign from URL...'
+
+      try {
+        const response = await fetch(this.importUrl)
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        const importedData = await response.json()
+
+        // Handle version migrations
+        const fileVersion = importedData.version || 0
+        if (fileVersion < CURRENT_VERSION) {
+          // Apply migrations sequentially
+          for (let v = fileVersion + 1; v <= CURRENT_VERSION; v++) {
+            if (MIGRATIONS[v]) {
+              console.log(`Migrating from version ${v-1} to ${v}`)
+              importedData = MIGRATIONS[v](importedData)
+            }
+          }
+        } else if (fileVersion > CURRENT_VERSION) {
+          throw new Error(`File version ${fileVersion} is newer than the editor version ${CURRENT_VERSION}`)
+        }
+
+        // Set the current version
+        importedData.version = CURRENT_VERSION
+
+        // Add new _key fields to all items
+        const processedData = this.addKeysToImportedData(importedData)
+
+        // Initialize empty fields if they don't exist
+        if (!processedData.title) processedData.title = {}
+        if (!processedData.introMessage) processedData.introMessage = {}
+        if (!processedData.prompt) processedData.prompt = ''
+        if (!processedData.characters) processedData.characters = []
+        if (!processedData.clues) processedData.clues = []
+        if (!processedData.conditionals) processedData.conditionals = []
+        if (!processedData.initialCharacters) processedData.initialCharacters = []
+
+        this.campaignData = processedData
+        this.message = 'Campaign imported successfully from URL!'
+        this.currentTab = 'General'
+        this.importUrl = '' // Clear the URL input
+      } catch (error) {
+        this.message = `Error importing campaign from URL: ${error.message}`
+        console.error('URL import error:', error)
+      } finally {
+        this.isImporting = false
+      }
     },
   }
 })

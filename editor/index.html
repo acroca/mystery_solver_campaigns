@@ -223,10 +223,32 @@
               </div>
             </div>
             <!-- Import/Export buttons -->
-            <div class="space-x-4">
+            <div class="flex items-center space-x-4">
+              <!-- URL Import -->
+              <div class="flex items-center space-x-2">
+                <input
+                  type="url"
+                  v-model="importUrl"
+                  placeholder="Enter campaign URL"
+                  class="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-64"
+                >
+                <button
+                  @click="importFromUrl"
+                  :disabled="!importUrl"
+                  :class="[
+                    'px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2',
+                    importUrl
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  ]"
+                >
+                  Import from URL
+                </button>
+              </div>
+              <!-- File Import/Export -->
               <input type="file" ref="fileInput" @change="handleFileImport" class="hidden" accept=".json">
               <button @click="triggerFileInput" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                Import Campaign
+                Import File
               </button>
               <button @click="exportCampaign" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
                 Export Campaign
