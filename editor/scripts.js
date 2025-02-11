@@ -93,22 +93,6 @@ const TranslatableField = {
       type: Number,
       default: 3
     },
-    hasAiPrompt: {
-      type: Boolean,
-      default: false
-    },
-    aiPromptContext: {
-      type: Object,
-      default: () => ({})
-    },
-    aiPromptWordsLimit: {
-      type: Number,
-      default: 120
-    },
-    aiPromptInstructions: {
-      type: String,
-      default: ''
-    }
   },
   inject: ['selectedLanguage', 'languages', 'campaignData'],
   computed: {
@@ -123,55 +107,6 @@ const TranslatableField = {
     selectedLanguageName() {
       const lang = this.languages.find(l => l.code === this.selectedLanguage)
       return lang ? lang.name : ''
-    }
-  },
-  methods: {
-    copyAiPrompt() {
-      const language = this.languages.find(l => l.code === this.selectedLanguage)
-      const languageName = language ? language.name : 'English'
-
-      // Build the prompt based on the field and context
-      let prompt = `# AI Writing Instructions\n`
-      prompt += `You are a creative writer who can turn simple instructions into engaging, atmospheric text that players will enjoy reading.\n`
-      prompt += `- Create a concise but vivid narrative\n`
-      prompt += `- Focus on the most important details that players need to know\n`
-      prompt += `- Keep the language simple and the description brief\n`
-      prompt += `- Aim for ${this.aiPromptWordsLimit} words maximum\n`
-
-      // Add campaign context
-      if (this.campaignData) {
-        if (this.campaignData.prompt) {
-          prompt += `\n## Campaign Context\n`
-          prompt += `### Campaign Prompt\n${this.campaignData.prompt}\n`
-        }
-        if (this.campaignData.introMessage?.[this.selectedLanguage]) {
-          prompt += `\n### Campaign Intro Message\n${this.campaignData.introMessage[this.selectedLanguage]}\n`
-        }
-      }
-
-      prompt += `\n## Task\nGenerate a ${this.label.toLowerCase()} in ${languageName} for:\n`
-
-      // Add all context key-value pairs
-      if (this.aiPromptContext && Object.keys(this.aiPromptContext).length > 0) {
-        Object.entries(this.aiPromptContext).forEach(([key, value]) => {
-          if (value) {
-            // Convert key from camelCase to Title Case for display
-            const displayKey = key
-              .replace(/([A-Z])/g, ' $1')
-              .replace(/^./, str => str.toUpperCase())
-            prompt += `### ${displayKey}\n${value}\n`
-          }
-        })
-      }
-
-      // Add specific instructions if provided
-      if (this.aiPromptInstructions) {
-        prompt += '\n## Instructions\n'
-        prompt += this.aiPromptInstructions
-      }
-
-      // Copy to clipboard
-      navigator.clipboard.writeText(prompt)
     }
   }
 }
@@ -374,7 +309,6 @@ const app = createApp({
           // Initialize empty fields if they don't exist
           if (!this.campaignData.title) this.campaignData.title = {}
           if (!this.campaignData.introMessage) this.campaignData.introMessage = {}
-          if (!this.campaignData.prompt) this.campaignData.prompt = ''
           if (!this.campaignData.characters) this.campaignData.characters = []
           if (!this.campaignData.clues) this.campaignData.clues = []
           if (!this.campaignData.conditionals) this.campaignData.conditionals = []
@@ -433,7 +367,6 @@ const app = createApp({
         name: '',
         intro: {},
         description: {},
-        prompt: '',
         portraitPrompt: '',
         isInitiallyAvailable: false
       }
@@ -571,7 +504,6 @@ const app = createApp({
           name: '',
           intro: {},
           description: {},
-          prompt: '',
           portraitPrompt: '',
           portrait: ''
         }
@@ -778,7 +710,6 @@ const app = createApp({
         // Initialize empty fields if they don't exist
         if (!processedData.title) processedData.title = {}
         if (!processedData.introMessage) processedData.introMessage = {}
-        if (!processedData.prompt) processedData.prompt = ''
         if (!processedData.characters) processedData.characters = []
         if (!processedData.clues) processedData.clues = []
         if (!processedData.conditionals) processedData.conditionals = []
