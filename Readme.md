@@ -2,7 +2,7 @@
 
 This repo contains the data for the campaigns for the Mystery Solver game.
 
-The game is currently in development and not publicly available yet. More information about the game will be available soon!
+The game is available at [mystery-solver Discord](https://discord.gg/WgUDPwrVn9). Feel free to join the server and say hi!
 
 ## Editor
 
