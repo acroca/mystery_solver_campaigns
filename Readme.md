@@ -1,4 +1,5 @@
 # Campaigns for Mystery Solver game
+[![Discord](https://img.shields.io/discord/1332802923020685394?label=Discord&logo=discord&color=5865F2)]([https://discord.gg/YOUR_INVITE_CODE](https://discord.gg/WgUDPwrVn9))
 
 This repo contains the data for the campaigns for the Mystery Solver game.
 
