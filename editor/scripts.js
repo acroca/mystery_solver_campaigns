@@ -282,10 +282,10 @@ const app = createApp({
     },
     endGoalClue: {
       get() {
-        return this.campaignData.end_clue_id ? [this.campaignData.end_clue_id] : []
+        return this.campaignData.endClue ? [this.campaignData.endClue] : []
       },
       set(value) {
-        this.campaignData.end_clue_id = value.length > 0 ? value[0] : ''
+        this.campaignData.endClue = value.length > 0 ? value[0] : ''
       }
     }
   },
@@ -331,7 +331,7 @@ const app = createApp({
           if (!this.campaignData.clues) this.campaignData.clues = []
           if (!this.campaignData.conditionals) this.campaignData.conditionals = []
           if (!this.campaignData.initialCharacters) this.campaignData.initialCharacters = []
-          if (!this.campaignData.end_clue_id) this.campaignData.end_clue_id = ''
+          if (!this.campaignData.endClue) this.campaignData.endClue = ''
 
           this.message = 'Campaign file imported successfully!'
           this.currentTab = 'General'
@@ -733,7 +733,7 @@ const app = createApp({
         if (!processedData.clues) processedData.clues = []
         if (!processedData.conditionals) processedData.conditionals = []
         if (!processedData.initialCharacters) processedData.initialCharacters = []
-        if (!processedData.end_clue_id) processedData.end_clue_id = ''
+        if (!processedData.endClue) processedData.endClue = ''
 
         this.campaignData = processedData
         this.message = 'Campaign imported successfully from URL!'
