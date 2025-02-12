@@ -130,6 +130,10 @@ const SelectorField = {
     itemType: {
       type: String,
       required: true
+    },
+    singleSelect: {
+      type: Boolean,
+      default: false
     }
   },
   computed: {
@@ -141,7 +145,13 @@ const SelectorField = {
         return this.modelValue
       },
       set(value) {
-        this.$emit('update:modelValue', value)
+        if (this.singleSelect) {
+          // For single select, ensure only one item is selected
+          const newValue = value.length > 0 ? [value[value.length - 1]] : []
+          this.$emit('update:modelValue', newValue)
+        } else {
+          this.$emit('update:modelValue', value)
+        }
       }
     }
   },
@@ -269,6 +279,14 @@ const app = createApp({
       set(value) {
         this.campaignData.initialCharacters = value
       }
+    },
+    endGoalClue: {
+      get() {
+        return this.campaignData.end_clue_id ? [this.campaignData.end_clue_id] : []
+      },
+      set(value) {
+        this.campaignData.end_clue_id = value.length > 0 ? value[0] : ''
+      }
     }
   },
   methods: {
@@ -313,6 +331,7 @@ const app = createApp({
           if (!this.campaignData.clues) this.campaignData.clues = []
           if (!this.campaignData.conditionals) this.campaignData.conditionals = []
           if (!this.campaignData.initialCharacters) this.campaignData.initialCharacters = []
+          if (!this.campaignData.end_clue_id) this.campaignData.end_clue_id = ''
 
           this.message = 'Campaign file imported successfully!'
           this.currentTab = 'General'
@@ -714,6 +733,7 @@ const app = createApp({
         if (!processedData.clues) processedData.clues = []
         if (!processedData.conditionals) processedData.conditionals = []
         if (!processedData.initialCharacters) processedData.initialCharacters = []
+        if (!processedData.end_clue_id) processedData.end_clue_id = ''
 
         this.campaignData = processedData
         this.message = 'Campaign imported successfully from URL!'

@@ -50,13 +50,26 @@
           No {{ itemType }}s available.
         </div>
         <div v-for="item in items" :key="item.id" class="flex items-center">
-          <input
-            type="checkbox"
-            :id="componentId + '-' + item.id"
-            :value="item.id"
-            v-model="selectedItems"
-            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          >
+          <template v-if="singleSelect">
+            <input
+              type="radio"
+              :id="componentId + '-' + item.id"
+              :value="item.id"
+              :name="componentId"
+              :checked="selectedItems.includes(item.id)"
+              @change="selectedItems = item.id ? [item.id] : []"
+              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+            >
+          </template>
+          <template v-else>
+            <input
+              type="checkbox"
+              :id="componentId + '-' + item.id"
+              :value="item.id"
+              v-model="selectedItems"
+              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            >
+          </template>
           <label :for="componentId + '-' + item.id" class="ml-2 text-sm text-gray-700">
             {{ getItemLabel(item) }}
           </label>
@@ -293,6 +306,15 @@
                 v-model="campaignData.initialCharacters"
                 :items="campaignData.characters"
                 item-type="character"
+              ></selector-field>
+
+              <!-- End Goal Clue -->
+              <selector-field
+                label="End Goal Clue"
+                v-model="endGoalClue"
+                :items="campaignData.clues"
+                item-type="clue"
+                :single-select="true"
               ></selector-field>
             </div>
           </div>
