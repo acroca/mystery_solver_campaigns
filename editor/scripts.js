@@ -448,6 +448,7 @@ const app = createApp({
 
       const newConditional = {
         _key: crypto.randomUUID(),
+        id: crypto.randomUUID(),
         characterId: '',
         requiredClues: [],
         requiredCharacters: [],
@@ -561,6 +562,7 @@ const app = createApp({
         this.editingConditionalIndex = -1
         this.editingConditional = {
           _key: crypto.randomUUID(),
+          id: crypto.randomUUID(),
           characterId: '',
           requiredClues: [],
           requiredCharacters: [],

@@ -793,9 +793,8 @@
                       >
                     </div>
                     <label :for="'sim-conditional-' + conditional._key" class="text-sm text-gray-700">
-                      <div class="font-medium">{{ conditional.id }}</div>
-                      <div class="text-gray-600">{{ getCharacterName(conditional.characterId) }}</div>
-                      <div class="text-gray-500 text-xs mt-1">{{ conditional.condition }}</div>
+                      <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">{{ getCharacterName(conditional.characterId) }}</span>
+                      <div class="text-gray-900">{{ conditional.condition }}</div>
                     </label>
                   </div>
                 </div>
@@ -870,28 +869,33 @@
                       >
                     </div>
                     <div class="flex-1 space-y-2">
-                      <div class="text-sm font-medium text-gray-900">
-                        <div>{{ conditional.id }}</div>
-                        {{ getCharacterName(conditional.characterId) }}
+                      <div class="flex items-center space-x-2 text-sm">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          {{ getCharacterName(conditional.characterId) }}
+                        </span>
+                        <span class="font-medium text-gray-900">{{ conditional.condition }}</span>
                       </div>
-                      <div class="text-sm text-gray-700">{{ conditional.condition }}</div>
 
                       <!-- What this would unlock -->
                       <div class="mt-3 space-y-2">
                         <div v-if="conditional.unlockedClues.length" class="text-xs text-gray-500">
-                          Would unlock clues:
-                          <div class="ml-2 text-sm text-gray-700">
-                            {{ conditional.unlockedClues.map(id => getClueText(id)).join(', ') }}
-                          </div>
+                          Unlocks clues:
+                          <ul class="ml-2 text-sm text-gray-700">
+                            <li v-for="id in conditional.unlockedClues" :key="id">
+                              {{ getClueText(id) }}
+                            </li>
+                          </ul>
                         </div>
                         <div v-if="conditional.unlockedCharacters.length" class="text-xs text-gray-500">
-                          Would unlock characters:
-                          <div class="ml-2 text-sm text-gray-700">
-                            {{ conditional.unlockedCharacters.map(id => getCharacterName(id)).join(', ') }}
-                          </div>
+                          Unlocks characters:
+                          <ul class="ml-2 text-sm text-gray-700">
+                            <li v-for="id in conditional.unlockedCharacters" :key="id">
+                              {{ getCharacterName(id) }}
+                            </li>
+                          </ul>
                         </div>
                         <div v-if="conditional.revealedInformation" class="text-xs text-gray-500">
-                          Would reveal:
+                          Reveals information:
                           <div class="ml-2 text-sm text-gray-700">{{ conditional.revealedInformation }}</div>
                         </div>
                       </div>
