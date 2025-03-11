@@ -805,16 +805,18 @@ const app = createApp({
         }
 
         // Check if all required clues are present
-        const hasAllRequiredClues = conditional.requiredClues.every(clueId =>
-          this.simulatorState.clues.includes(clueId)
-        )
+        const hasAllRequiredClues = conditional.requiredClues.every(clueId => {
+          return this.simulatorState.clues.includes(clueId)
+        })
 
         // Check if all required characters are present
-        const hasAllRequiredCharacters = conditional.requiredCharacters.every(charId =>
-          this.simulatorState.characters.includes(charId)
-        )
+        const hasAllRequiredCharacters = conditional.requiredCharacters.every(charId => {
+          return this.simulatorState.characters.includes(charId)
+        })
 
-        return hasAllRequiredClues && hasAllRequiredCharacters
+        const hasUnlockedCharacter = this.simulatorState.characters.includes(conditional.characterId)
+
+        return hasAllRequiredClues && hasAllRequiredCharacters && hasUnlockedCharacter
       })
     },
     isItemUnlocked(type, id) {
