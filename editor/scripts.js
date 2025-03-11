@@ -1,11 +1,5 @@
 const { createApp, computed } = Vue
 
-// Languages configuration
-const LANGUAGES = [
-  { code: 'en', name: 'English' },
-  { code: 'es', name: 'Spanish' }
-]
-
 // Version configuration
 const CURRENT_VERSION = 1
 
@@ -13,8 +7,6 @@ const CURRENT_VERSION = 1
 const MIGRATIONS = {
   // Example migration from version 0 to 1
   1: (data) => {
-    // If importing a file without version, treat it as version 0
-    // Add any necessary transformations here
     return data
   }
   // Add more migrations as needed:
@@ -74,8 +66,8 @@ const TranslatableField = {
   template: '#translatable-field',
   props: {
     modelValue: {
-      type: Object,
-      default: () => ({})
+      type: String,
+      default: ''
     },
     label: {
       type: String,
@@ -94,19 +86,14 @@ const TranslatableField = {
       default: 3
     },
   },
-  inject: ['selectedLanguage', 'languages', 'campaignData'],
   computed: {
     translations: {
       get() {
-        return this.modelValue || {}
+        return this.modelValue || ''
       },
       set(value) {
         this.$emit('update:modelValue', value)
       }
-    },
-    selectedLanguageName() {
-      const lang = this.languages.find(l => l.code === this.selectedLanguage)
-      return lang ? lang.name : ''
     }
   }
 }
@@ -171,10 +158,8 @@ const ModalDialog = {
   props: {
     show: Boolean,
     title: String,
-    selectedLanguage: String,
-    languages: Array
   },
-  emits: ['close', 'update:selectedLanguage']
+  emits: ['close']
 }
 
 // Dependency Item Component
@@ -240,8 +225,6 @@ const app = createApp({
   },
   provide() {
     return {
-      selectedLanguage: computed(() => this.selectedLanguage),
-      languages: LANGUAGES,
       campaignData: computed(() => this.campaignData)
     }
   },
@@ -250,9 +233,7 @@ const app = createApp({
       message: 'Welcome to the Campaign Editor',
       campaignData: null,
       currentTab: 'General',
-      tabs: ['General', 'Characters', 'Clues', 'Conditionals', 'JSON'],
-      selectedLanguage: 'en',
-      languages: LANGUAGES,
+      tabs: ['General', 'Characters', 'Clues', 'Conditionals', 'Simulator', 'JSON'],
       showClueModal: false,
       editingClue: null,
       editingClueIndex: -1,
@@ -263,7 +244,14 @@ const app = createApp({
       editingConditional: null,
       editingConditionalIndex: -1,
       importUrl: 'https://raw.githubusercontent.com/acroca/mystery_solver_campaigns/refs/heads/main/secret_formula.json',
-      isImporting: false
+      isImporting: false,
+      simulatorState: {
+        unlockedConditionals: [],
+        characters: [],
+        clues: [],
+        revealedInformation: []
+      },
+      availableUnlockables: []
     }
   },
   computed: {
@@ -332,6 +320,15 @@ const app = createApp({
           if (!this.campaignData.conditionals) this.campaignData.conditionals = []
           if (!this.campaignData.initialCharacters) this.campaignData.initialCharacters = []
           if (!this.campaignData.endClue) this.campaignData.endClue = ''
+
+          // Initialize simulator state with initial characters
+          this.simulatorState.characters = [...(this.campaignData.initialCharacters || [])]
+          this.simulatorState.clues = []
+          this.simulatorState.unlockedConditionals = []
+          this.simulatorState.revealedInformation = []
+
+          // Calculate available conditionals based on initial state
+          this.recalculateAvailableUnlockables()
 
           this.message = 'Campaign file imported successfully!'
           this.currentTab = 'General'
@@ -629,7 +626,7 @@ const app = createApp({
     },
     getClueText(clueId) {
       const clue = this.campaignData.clues.find(c => c.id === clueId)
-      return clue ? (clue.text?.en || clue.id) : clueId
+      return clue ? (clue.text || clue.id) : clueId
     },
     handlePortraitUpload(event) {
       const file = event.target.files[0]
@@ -736,6 +733,16 @@ const app = createApp({
         if (!processedData.endClue) processedData.endClue = ''
 
         this.campaignData = processedData
+
+        // Initialize simulator state with initial characters
+        this.simulatorState.characters = [...(processedData.initialCharacters || [])]
+        this.simulatorState.clues = []
+        this.simulatorState.unlockedConditionals = []
+        this.simulatorState.revealedInformation = []
+
+        // Calculate available conditionals based on initial state
+        this.recalculateAvailableUnlockables()
+
         this.message = 'Campaign imported successfully from URL!'
         this.currentTab = 'General'
         this.importUrl = '' // Clear the URL input
@@ -746,6 +753,97 @@ const app = createApp({
         this.isImporting = false
       }
     },
+    // Simulator methods
+    updateSimulatorState() {
+      // Reset the current state
+      this.simulatorState.characters = [...(this.campaignData?.initialCharacters || [])]
+      this.simulatorState.clues = []
+      this.simulatorState.revealedInformation = []
+
+      // Get all selected conditionals
+      const selectedConditionals = this.campaignData.conditionals.filter(conditional =>
+        this.simulatorState.unlockedConditionals.includes(conditional._key)
+      )
+
+      // Update state based on selected conditionals
+      selectedConditionals.forEach(conditional => {
+        // Add unlocked characters
+        conditional.unlockedCharacters.forEach(charId => {
+          if (!this.simulatorState.characters.includes(charId)) {
+            this.simulatorState.characters.push(charId)
+          }
+        })
+
+        // Add unlocked clues
+        conditional.unlockedClues.forEach(clueId => {
+          if (!this.simulatorState.clues.includes(clueId)) {
+            this.simulatorState.clues.push(clueId)
+          }
+        })
+
+        // Add revealed information
+        if (conditional.revealedInformation && !this.simulatorState.revealedInformation.includes(conditional.revealedInformation)) {
+          this.simulatorState.revealedInformation.push(conditional.revealedInformation)
+        }
+      })
+
+      this.recalculateAvailableUnlockables()
+    },
+    recalculateAvailableUnlockables() {
+      if (!this.campaignData?.conditionals) {
+        this.availableUnlockables = []
+        return
+      }
+
+      // Filter conditionals that:
+      // 1. Are not already unlocked
+      // 2. Have all their requirements met by currently unlocked items
+      this.availableUnlockables = this.campaignData.conditionals.filter(conditional => {
+        // Skip if already unlocked
+        if (this.simulatorState.unlockedConditionals.includes(conditional._key)) {
+          return false
+        }
+
+        // Check if all required clues are present
+        const hasAllRequiredClues = conditional.requiredClues.every(clueId =>
+          this.simulatorState.clues.includes(clueId)
+        )
+
+        // Check if all required characters are present
+        const hasAllRequiredCharacters = conditional.requiredCharacters.every(charId =>
+          this.simulatorState.characters.includes(charId)
+        )
+
+        return hasAllRequiredClues && hasAllRequiredCharacters
+      })
+    },
+    isItemUnlocked(type, id) {
+      if (type === 'character') {
+        return this.simulatorState.characters.includes(id)
+      } else if (type === 'clue') {
+        return this.simulatorState.clues.includes(id)
+      }
+      return false
+    },
+    resetSimulator() {
+      // Reset conditionals and state
+      this.simulatorState.unlockedConditionals = []
+
+      // Initialize with initial characters from campaign
+      this.simulatorState.characters = [...(this.campaignData?.initialCharacters || [])]
+      this.simulatorState.clues = []
+      this.simulatorState.revealedInformation = []
+
+      // Calculate available conditionals based on initial characters
+      this.recalculateAvailableUnlockables()
+    },
+    // Watch for tab changes to initialize simulator when needed
+    handleTabChange(newTab) {
+      this.currentTab = newTab
+      if (newTab === 'Simulator' && this.campaignData) {
+        this.resetSimulator()
+      }
+    }
   }
 })
 

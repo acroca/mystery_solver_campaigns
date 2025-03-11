@@ -19,13 +19,13 @@
         <div class="flex justify-between items-center">
           <div class="flex items-center gap-2">
             <label class="block text-sm font-medium text-gray-700">
-              {{ label }} ({{ selectedLanguageName }})
+              {{ label }}
             </label>
           </div>
         </div>
         <template v-if="multiline">
           <auto-textarea
-            v-model="translations[selectedLanguage]"
+            v-model="translations"
             :placeholder="placeholder"
             :multiline="true"
           ></auto-textarea>
@@ -33,7 +33,7 @@
         <template v-else>
           <input
             type="text"
-            v-model="translations[selectedLanguage]"
+            v-model="translations"
             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             :placeholder="placeholder"
           >
@@ -87,7 +87,7 @@
         <!-- Modal panel -->
         <div class="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-7xl sm:align-middle">
           <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <!-- Header with Language Selector -->
+            <!-- Header -->
             <div class="mb-4">
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-medium leading-6 text-gray-900">{{ title }}</h3>
@@ -96,25 +96,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-              </div>
-              <!-- Language Selector -->
-              <div class="flex items-center space-x-2">
-                <label class="text-sm font-medium text-gray-700">Editing Language:</label>
-                <div class="flex space-x-1">
-                  <button
-                    v-for="lang in languages"
-                    :key="lang.code"
-                    @click="$emit('update:selectedLanguage', lang.code)"
-                    :class="[
-                      'px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2',
-                      selectedLanguage === lang.code
-                        ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
-                        : 'bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500 border border-gray-300'
-                    ]"
-                  >
-                    {{ lang.name }}
-                  </button>
-                </div>
               </div>
             </div>
             <!-- Content -->
@@ -206,25 +187,6 @@
         <div class="flex justify-between items-center">
           <h1 class="text-2xl font-bold text-gray-900">Campaign Editor</h1>
           <div class="flex items-center space-x-4">
-            <!-- Language Selector -->
-            <div class="flex items-center space-x-2">
-              <label class="text-sm font-medium text-gray-700">Editing Language:</label>
-              <div class="flex space-x-1">
-                <button
-                  v-for="lang in languages"
-                  :key="lang.code"
-                  @click="selectedLanguage = lang.code"
-                  :class="[
-                    'px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2',
-                    selectedLanguage === lang.code
-                      ? 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
-                      : 'bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500 border border-gray-300'
-                  ]"
-                >
-                  {{ lang.name }}
-                </button>
-              </div>
-            </div>
             <!-- Import/Export buttons -->
             <div class="flex items-center space-x-4">
               <!-- URL Import -->
@@ -274,7 +236,7 @@
         <!-- Tabs -->
         <div class="border-b border-gray-200">
           <nav class="flex -mb-px">
-            <button v-for="tab in tabs" :key="tab" @click="currentTab = tab" :class="[
+            <button v-for="tab in tabs" :key="tab" @click="handleTabChange(tab)" :class="[
                                 'px-6 py-3 text-sm font-medium',
                                 currentTab === tab
                                     ? 'border-b-2 border-blue-500 text-blue-600'
@@ -383,10 +345,6 @@
               v-if="showCharacterModal"
               :show="showCharacterModal"
               :title="editingCharacter._key ? 'Edit Character' : 'Add Character'"
-              :selected-language="selectedLanguage"
-              :languages="languages"
-              @close="closeCharacterForm"
-              @update:selected-language="selectedLanguage = $event"
             >
               <div class="grid grid-cols-1 gap-6">
                 <!-- ID -->
@@ -521,7 +479,7 @@
                 <thead class="bg-gray-50">
                   <tr>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Text (English)</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Text</th>
                     <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -548,10 +506,6 @@
               v-if="showClueModal"
               :show="showClueModal"
               :title="editingClue._key ? 'Edit Clue' : 'Add Clue'"
-              :selected-language="selectedLanguage"
-              :languages="languages"
-              @close="closeClueForm"
-              @update:selected-language="selectedLanguage = $event"
             >
               <div class="grid grid-cols-1 gap-6">
                 <!-- ID -->
@@ -654,10 +608,6 @@
               v-if="showConditionalModal"
               :show="showConditionalModal"
               :title="editingConditional._key ? 'Edit Conditional' : 'Add Conditional'"
-              :selected-language="selectedLanguage"
-              :languages="languages"
-              @close="closeConditionalForm"
-              @update:selected-language="selectedLanguage = $event"
             >
               <div class="grid grid-cols-2 gap-6">
                 <!-- Left Sidebar - Selected Items -->
@@ -810,6 +760,146 @@
             </div>
             <textarea :value="prettyJson" readonly
               class="w-full h-[600px] font-mono text-sm p-4 bg-gray-50 rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"></textarea>
+          </div>
+
+          <!-- Simulator Tab -->
+          <div v-if="currentTab === 'Simulator'" class="grid grid-cols-12 gap-6">
+            <!-- Left Column - Conditionals and Current State -->
+            <div class="col-span-4 space-y-6">
+              <!-- All Conditionals Section -->
+              <div class="bg-white p-4 rounded-lg shadow">
+                <div class="flex justify-between items-center mb-4">
+                  <h3 class="text-lg font-medium text-gray-900">All Conditionals</h3>
+                  <button
+                    @click="resetSimulator"
+                    class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                  >
+                    Reset All
+                  </button>
+                </div>
+                <div class="space-y-2 max-h-[300px] overflow-y-auto">
+                  <div v-if="!campaignData?.conditionals?.length" class="text-sm text-gray-500">
+                    No conditionals available.
+                  </div>
+                  <div v-for="conditional in campaignData?.conditionals" :key="conditional._key" class="flex items-start space-x-2">
+                    <div class="flex items-center h-5 pt-0.5">
+                      <input
+                        type="checkbox"
+                        :id="'sim-conditional-' + conditional._key"
+                        v-model="simulatorState.unlockedConditionals"
+                        :value="conditional._key"
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        @change="updateSimulatorState"
+                      >
+                    </div>
+                    <label :for="'sim-conditional-' + conditional._key" class="text-sm text-gray-700">
+                      <div class="font-medium">{{ conditional.id }}</div>
+                      <div class="text-gray-600">{{ getCharacterName(conditional.characterId) }}</div>
+                      <div class="text-gray-500 text-xs mt-1">{{ conditional.condition }}</div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Current State -->
+              <div class="space-y-6">
+                <!-- Characters Section -->
+                <div class="bg-white p-4 rounded-lg shadow">
+                  <h3 class="text-lg font-medium text-gray-900 mb-3">Characters</h3>
+                  <div class="space-y-2">
+                    <div v-if="!campaignData?.characters?.length" class="text-sm text-gray-500">
+                      No characters available.
+                    </div>
+                    <div v-for="char in campaignData?.characters" :key="char._key"
+                         class="flex items-center p-2 rounded"
+                         :class="[isItemUnlocked('character', char.id) ? 'text-gray-900' : 'text-gray-400']">
+                      <span class="text-sm">{{ char.name || char.id }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Clues Section -->
+                <div class="bg-white p-4 rounded-lg shadow">
+                  <h3 class="text-lg font-medium text-gray-900 mb-3">Clues</h3>
+                  <div class="space-y-2">
+                    <div v-if="!campaignData?.clues?.length" class="text-sm text-gray-500">
+                      No clues available.
+                    </div>
+                    <div v-for="clue in campaignData?.clues" :key="clue._key"
+                         class="flex items-center p-2 rounded"
+                         :class="[isItemUnlocked('clue', clue.id) ? 'text-gray-900' : 'text-gray-400']">
+                      <span class="text-sm">{{ clue.text?.en || clue.id }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Revealed Information -->
+                <div class="bg-white p-4 rounded-lg shadow">
+                  <h3 class="text-lg font-medium text-gray-900 mb-3">Revealed Information</h3>
+                  <div class="space-y-2">
+                    <div v-if="!simulatorState.revealedInformation.length" class="text-sm text-gray-500">
+                      No information revealed.
+                    </div>
+                    <div v-for="(info, index) in simulatorState.revealedInformation" :key="index"
+                         class="p-2 bg-gray-50 rounded-md">
+                      <div class="text-sm">{{ info }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Center Column - Available Conditionals -->
+            <div class="col-span-8 bg-white p-4 rounded-lg shadow">
+              <h3 class="text-lg font-medium text-gray-900 mb-4">Available Conditionals</h3>
+              <div class="space-y-4">
+                <div v-if="!availableUnlockables.length" class="text-sm text-gray-500">
+                  No conditionals available with the current unlocked items.
+                </div>
+                <div v-for="conditional in availableUnlockables" :key="conditional._key"
+                     class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div class="flex items-start space-x-3">
+                    <div class="flex items-center h-5 pt-1">
+                      <input
+                        type="checkbox"
+                        :id="'sim-available-' + conditional._key"
+                        v-model="simulatorState.unlockedConditionals"
+                        :value="conditional._key"
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        @change="updateSimulatorState"
+                      >
+                    </div>
+                    <div class="flex-1 space-y-2">
+                      <div class="text-sm font-medium text-gray-900">
+                        <div>{{ conditional.id }}</div>
+                        {{ getCharacterName(conditional.characterId) }}
+                      </div>
+                      <div class="text-sm text-gray-700">{{ conditional.condition }}</div>
+
+                      <!-- What this would unlock -->
+                      <div class="mt-3 space-y-2">
+                        <div v-if="conditional.unlockedClues.length" class="text-xs text-gray-500">
+                          Would unlock clues:
+                          <div class="ml-2 text-sm text-gray-700">
+                            {{ conditional.unlockedClues.map(id => getClueText(id)).join(', ') }}
+                          </div>
+                        </div>
+                        <div v-if="conditional.unlockedCharacters.length" class="text-xs text-gray-500">
+                          Would unlock characters:
+                          <div class="ml-2 text-sm text-gray-700">
+                            {{ conditional.unlockedCharacters.map(id => getCharacterName(id)).join(', ') }}
+                          </div>
+                        </div>
+                        <div v-if="conditional.revealedInformation" class="text-xs text-gray-500">
+                          Would reveal:
+                          <div class="ml-2 text-sm text-gray-700">{{ conditional.revealedInformation }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
